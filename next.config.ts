@@ -21,13 +21,23 @@ const HOSTNAME_AWS_S3 =
     ? `${process.env.NEXT_PUBLIC_AWS_S3_BUCKET}.s3.${process.env.NEXT_PUBLIC_AWS_S3_REGION}.amazonaws.com`
     : undefined;
 
-const generateRemotePattern = (hostname: string) =>
-  ({
-    protocol: 'https',
-    hostname: removeUrlProtocol(hostname)!,
-    port: '',
-    pathname: '/**',
-  } as const);
+const HOSTNAME_MINIO =
+  process.env.NEXT_PUBLIC_MINIO_DOMAIN;
+const MINIO_PORT =
+  process.env.NEXT_PUBLIC_MINIO_PORT;
+const MINIO_USE_SSL =
+  process.env.NEXT_PUBLIC_MINIO_DISABLE_SSL !== '1';
+
+const generateRemotePattern = (
+  hostname: string,
+  port?: string,
+  useSSL = true,
+): RemotePattern => ({
+  protocol: useSSL ? 'https' : 'http',
+  hostname: removeUrlProtocol(hostname)!,
+  port,
+  pathname: '/**',
+});
 
 const remotePatterns: RemotePattern[] = [];
 
@@ -39,6 +49,13 @@ if (HOSTNAME_CLOUDFLARE_R2) {
 }
 if (HOSTNAME_AWS_S3) {
   remotePatterns.push(generateRemotePattern(HOSTNAME_AWS_S3));
+}
+if (HOSTNAME_MINIO) {
+  remotePatterns.push(generateRemotePattern(
+    HOSTNAME_MINIO,
+    MINIO_PORT,
+    MINIO_USE_SSL,
+  ));
 }
 
 const LOCALE = process.env.NEXT_PUBLIC_LOCALE || 'en-us';
@@ -53,7 +70,7 @@ const IMAGE_QUALITY =
 const nextConfig: NextConfig = {
   images: {
     imageSizes: [200],
-    qualities: [IMAGE_QUALITY],
+    qualities: [75, IMAGE_QUALITY],
     remotePatterns,
     minimumCacheTTL: 31536000,
   },
