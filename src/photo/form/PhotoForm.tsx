@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 'use client';
 
 import {
@@ -64,6 +65,7 @@ import SmallDisclosure from '@/components/SmallDisclosure';
 import { TbPhoto } from 'react-icons/tb';
 import { Albums } from '@/album';
 import FieldsetAlbum from '@/album/FieldsetAlbum';
+import Form from 'next/form';
 
 const THUMBNAIL_SIZE = 300;
 
@@ -105,6 +107,9 @@ export default function PhotoForm({
   const [formErrors, setFormErrors] =
     useState(getFormErrors(initialPhotoForm));
   const [formActionErrorMessage, setFormActionErrorMessage] = useState('');
+
+  const [detectedFilm, setDetectedFilm] =
+    useState(initialPhotoForm.film);
 
   const [albumTitles, setAlbumTitles] = useState(photoAlbumTitles
     .sort((a, b) => a.localeCompare(b))
@@ -165,6 +170,10 @@ export default function PhotoForm({
           ...updatedExifData,
         };
       });
+
+      if (updatedExifData?.film) {
+        setDetectedFilm(updatedExifData.film);
+      }
 
       if (changedKeys.length > 0) {
         const fields = convertFormKeysToLabels(changedKeys);
@@ -334,13 +343,18 @@ export default function PhotoForm({
         ? 'true'
         : 'false',
     }));
-  }, []);
+  }, [setFormData]);
 
   const formContent = useMemo(() =>
     FORM_METADATA_ENTRIES_BY_SECTION(
       convertTagsForForm(uniqueTags, appText),
       convertRecipesForForm(uniqueRecipes),
-      convertFilmsForForm(uniqueFilms, isMakeFujifilm(formData.make)),
+      convertFilmsForForm(
+        uniqueFilms,
+        isMakeFujifilm(formData.make),
+        detectedFilm,
+        formData.make,
+      ),
       aiContent !== undefined,
       shouldStripGpsData,
     ), [
@@ -349,6 +363,7 @@ export default function PhotoForm({
     uniqueRecipes,
     uniqueFilms,
     formData.make,
+    detectedFilm,
     aiContent,
     shouldStripGpsData,
   ]);
@@ -449,7 +464,7 @@ export default function PhotoForm({
           </a>
         ))}
       </div>
-      <form
+      <Form
         action={data => (type === 'create'
           ? createPhotoAction
           : updatePhotoAction
@@ -587,6 +602,12 @@ export default function PhotoForm({
                             colorData={generateColorDataFromString(formData.colorData)}
                           />}
                         />;
+                      case 'tags':
+                        return <FieldsetWithStatus
+                          key={key}
+                          {...fieldProps}
+                          className="relative z-2"
+                        />;
                       case 'albums':
                         return <FieldsetAlbum
                           key={key}
@@ -656,7 +677,7 @@ export default function PhotoForm({
             'dark:from-black/90 dark:from-50%',
           )} />
         </div>
-      </form>
+      </Form>
     </div>
   );
 };
